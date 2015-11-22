@@ -94,3 +94,153 @@ SetEnvIfNoCase ^(Accept-EncodXng|X-cept-Encoding|X{15}|~{15}|-{15})$ ^((gzip|def
 # CSS and JavaScript
   ExpiresByType text/css                  "access plus 1 year"
   ExpiresByType application/javascript    "access plus 1 year"
+
+  <FilesMatch "^(wp-login\.php)">
+  Order Allow,Deny
+  # Add your website domain name
+  Allow from localhost
+  Allow from 192.168.169.
+  </FilesMatch>
+
+  # BEGIN WEBSITE SPEED BOOST
+  # Time cheat sheet in seconds
+  # A86400 = 1 day
+  # A172800 = 2 days
+  # A2419200 = 1 month
+  # A4838400 = 2 months
+  # A29030400 = 1 year
+
+  # Test which ETag setting works best on your Host/Server/Website
+  # with Firefox Firebug, Firephp and Yslow benchmark tests.
+
+  # Create the ETag (entity tag) response header field
+  #FileETag MTime Size
+
+  # Remove the ETag (entity tag) response header field
+  Header unset ETag
+  FileETag none
+
+  <IfModule mod_expires.c>
+  ExpiresActive on
+  ExpiresByType image/jpg A4838400
+  ExpiresByType image/gif A4838400
+  ExpiresByType image/jpeg A4838400
+  ExpiresByType image/png A4838400
+  ExpiresByType video/webm A4838400
+  ExpiresByType application/x-shockwave-flash A4838400
+  ExpiresByType application/x-javascript A4838400
+  ExpiresByType application/javascript A4838400
+  ExpiresByType text/javascript A4838400
+  ExpiresByType text/css A4838400
+  #ExpiresByType text/html A86400
+  # Default is 2 days below so the line above is not needed / commented out
+  ExpiresDefault A172800
+  </IfModule>
+
+  <IfModule mod_headers.c>
+  <FilesMatch "\.(js|css|flv|ico|pdf|avi|mov|ppt|doc|mp3|wmv|wav|gif|jpg|jpeg|png|swf|webm)$">
+  Header append Cache-Control "public"
+  </FilesMatch>
+  <FilesMatch "\.(txt|html)$">
+  Header append Cache-Control "proxy-revalidate"
+  </FilesMatch>
+  <FilesMatch "\.(php|cgi|pl|htm|xml)$">
+  Header set Cache-Control "private, no-cache, no-store, proxy-revalidate, no-transform"
+  Header set Pragma "no-cache"
+  </FilesMatch>
+  </IfModule>
+
+  <IfModule mod_deflate.c>
+  # Insert filters
+  AddOutputFilterByType DEFLATE text/plain
+  AddOutputFilterByType DEFLATE text/html
+  AddOutputFilterByType DEFLATE text/xml
+  AddOutputFilterByType DEFLATE text/css
+  AddOutputFilterByType DEFLATE application/xml
+  AddOutputFilterByType DEFLATE application/xhtml+xml
+  AddOutputFilterByType DEFLATE application/rss+xml
+  AddOutputFilterByType DEFLATE application/javascript
+  AddOutputFilterByType DEFLATE application/x-javascript
+  AddOutputFilterByType DEFLATE application/x-httpd-php
+  AddOutputFilterByType DEFLATE application/x-httpd-fastphp
+  AddOutputFilterByType DEFLATE image/svg+xml
+
+  # Drop problematic browsers
+  BrowserMatch ^Mozilla/4 gzip-only-text/html
+  BrowserMatch ^Mozilla/4\.0[678] no-gzip
+  BrowserMatch \bMSI[E] !no-gzip !gzip-only-text/html
+
+  # Make sure proxies don't deliver the wrong content
+  Header append Vary User-Agent env=!dont-vary
+  </IfModule>
+  # END WEBSITE SPEED BOOST
+
+  # WP AUTHOR ENUMERATION BOT PROBE PROTECTION
+# Rewrites to author=999999 that does not actually exist
+# which results in a standard 404 error. To the hacker bot
+# it appears that this author does not exist without giving
+# any clues that the author does actually exist.
+
+RewriteCond %{QUERY_STRING} ^author=([0-9]){1,}$ [NC]
+RewriteRule ^(.*)$ $1?author=999999 [L]
+
+<FilesMatch "^(xmlrpc\.php|wp-trackback\.php)">
+Order Deny,Allow
+# Whitelist Jetpack/ Automattic CIDR IP Address Blocks
+Allow from 192.0.64.0/18
+Allow from 209.15.0.0/16
+Allow from 66.155.0.0/17
+Deny from all
+</FilesMatch>
+
+# BPS POST Request Attack Protection
+RewriteCond %{REQUEST_METHOD} POST [NC]
+# NEVER COMMENT OUT THIS LINE OF CODE BELOW FOR ANY REASON
+RewriteCond %{REQUEST_URI} !^.*/wp-admin/ [NC]
+# NEVER COMMENT OUT THIS LINE OF CODE BELOW FOR ANY REASON
+RewriteCond %{REQUEST_URI} !^.*/wp-cron.php [NC]
+# NEVER COMMENT OUT THIS LINE OF CODE BELOW FOR ANY REASON
+RewriteCond %{REQUEST_URI} !^.*/wp-login.php [NC]
+# Whitelist the WordPress Theme Customizer
+RewriteCond %{HTTP_REFERER} !^.*/wp-admin/customize.php
+# Whitelist XML-RPC Pingbacks, JetPack and Remote Posting POST Requests
+RewriteCond %{REQUEST_URI} !^.*/xmlrpc.php [NC]
+# Whitelist Network|Multisite Signup POST Form Requests
+RewriteCond %{REQUEST_URI} !^.*/wp-signup.php [NC]
+# Whitelist Network|Multisite Activate POST Form Requests
+RewriteCond %{REQUEST_URI} !^.*/wp-activate.php [NC]
+# Whitelist Trackback POST Requests
+RewriteCond %{REQUEST_URI} !^.*/wp-trackback.php [NC]
+# Whitelist Comments POST Form Requests
+RewriteCond %{REQUEST_URI} !^.*/wp-comments-post.php [NC]
+# Example 1: Whitelist Star Rating Calculator POST Form Requests
+RewriteCond %{REQUEST_URI} !^.*/star-rating-calculator.php [NC]
+# Example 2: Whitelist Contact Form POST Requests
+RewriteCond %{REQUEST_URI} !^.*/contact/ [NC]
+# Example 3: Whitelist PayPal IPN API Script POST Requests
+RewriteCond %{REQUEST_URI} !^.*/ipn_handler.php [NC]
+RewriteRule ^(.*)$ - [F]
+
+<IfModule mod_headers.c>
+# Using DENY will block all iFrames including iFrames on your own website
+# Header set X-Frame-Options DENY
+# Recommended: SAMEORIGIN - iFrames from the same site are allowed - other sites are blocked
+# Block other sites from displaying your website in iFrames
+# Protects against Clickjacking
+Header always append X-Frame-Options SAMEORIGIN
+# Protects against Drive-by Download attacks
+# Protects against MIME/Content/Data sniffing
+Header set X-Content-Type-Options nosniff
+</IfModule>
+
+<IfModule mod_headers.c>
+# Using DENY will block all iFrames including iFrames on your own website
+# Header set X-Frame-Options DENY
+# Recommended: SAMEORIGIN - iFrames from the same site are allowed - other sites are blocked
+# Block other sites from displaying your website in iFrames
+# Protects against Clickjacking
+Header always append X-Frame-Options SAMEORIGIN
+# Protects against Drive-by Download attacks
+# Protects against MIME/Content/Data sniffing
+Header set X-Content-Type-Options nosniff
+</IfModule>
